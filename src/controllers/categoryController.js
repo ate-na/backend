@@ -1,8 +1,9 @@
 const Category = require("../models/categoryModel");
 
 exports.createCategory = async (req, res, next) => {
-  const title = req.body.title;
-  const type = req.body.type;
+  const title = req.body?.title;
+  const type = req.body?.type;
+  const icon = req.body?.icon
   if (!title) {
     throw new Error("title is required");
   }
@@ -16,14 +17,17 @@ exports.createCategory = async (req, res, next) => {
   }
 
   try {
-    const category = await Category.create({ title: title, type: type });
-    return { data: category, status: 201 };
+    const category = await Category.create({ title, type, icon });
+    return res.json({ data: category, status: 201 });
+
   } catch (error) {
-    return { data: "error", status: 500 };
+    return res.json({ data: "error", status: 500 })
+
   }
 };
 
-exports.getCategories = async () => {
+exports.getCategories = async (req, res, next) => {
   const categories = await Category.find();
-  return { data: categories, status: 200 };
+  console.log(categories);
+  return res.json({ data: categories, status: 200 })
 };

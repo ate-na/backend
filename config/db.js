@@ -1,6 +1,9 @@
 const mongoose = require("mongoose");
 
 mongoose
-  .connect("", { useNewUrlParser: true, useUnifiedTopology: true })
+  .connect("mongodb://127.0.0.1/wallet", {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
   .then(() => console.log("Connected To MongoDB"))
-  .catch((error) => console.log(error));
+  .catch((error) => console.log("error", error));
