@@ -7,6 +7,8 @@ exports.createTransaction = async (req, res, next) => {
     const date = req.body?.date
     const category = req.body?.category
 
+    console.log(req.body)
+
     if (!money) {
         return res.status(400).json({ message: "money is required" })
     }
@@ -24,14 +26,14 @@ exports.createTransaction = async (req, res, next) => {
         return res.status(400).json({ message: "category is not valid" })
     }
 
-    const transaction = Transaction.create({ money, category, date })
+    const transaction = Transaction.create({ money: isCategoryExist.type === 'Expense' ? money * -1 : money, category, date })
 
     return res.status(200).json({ data: transaction })
 
 }
 
 
-exports.getTransactions = async () => {
+exports.getTransactions = async (req, res, next) => {
     const transactions = await Transaction.find({}, {}, { populate: "category" })
     res.status(200).json({ data: transactions })
 
