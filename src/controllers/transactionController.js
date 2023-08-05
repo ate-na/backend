@@ -34,7 +34,50 @@ exports.createTransaction = async (req, res, next) => {
 
 
 exports.getTransactions = async (req, res, next) => {
-    const transactions = await Transaction.find({}, {}, { populate: "category" })
+    const year = req.query.year
+    const month = req.query.month
+    const dummyDate = new Date(`${month} 1, ${year}`);
+    const monthNumber = dummyDate.getMonth() + 1;
+
+
+    const transactions = await Transaction.aggregate([
+        {
+            $project: {
+                month: { $month: '$date' },
+                year: { $year: '$date' },
+                category: 1,
+                money: 1,
+                date: 1
+            }
+        },
+
+        {
+            $match: {
+                $expr: {
+                    $and: [
+                        { $eq: ['$month', monthNumber] }, // 8 for August
+                        { $eq: ['$year', +year] }, // 2023 for the year
+                    ],
+                },
+            },
+        },
+        {
+            $lookup: {
+                from: "categories",
+                localField: "category",
+                foreignField: "_id",
+                as: "category"
+            }
+        },
+        {
+            $project: {
+                category: { $arrayElemAt: ['$category', 0] },
+                money: 1,
+                date: 1
+            }
+        }
+    ])
+    console.log("transactions", transactions)
     res.status(200).json({ data: transactions })
 
 }
@@ -56,4 +99,39 @@ exports.getByIdTransactions = async (req, res, next) => {
         return res.status(500).json({ data: error.message })
 
     }
+}
+
+
+exports.getTotalAmount = async (req, res, next) => {
+    const expense = await Transaction.aggregate([
+        {
+            $lookup: {
+                from: "categories",
+                localField: "category",
+                foreignField: "_id",
+                as: "category"
+            }
+        },
+        {
+            $project: {
+                category: { $arrayElemAt: ['$category', 0] },
+                money: 1,
+                date: 1
+            }
+        },
+        {
+            $group: {
+                _id: '$category.type',
+                totalAmount: { $sum: '$money' }
+            }
+        },
+
+    ])
+    res.json({ data: expense[0].totalAmount + expense[1].totalAmount })
+}
+
+exports.deleteTransactionById = async (req, res, next) => {
+    const id = req.params.id
+    const trx = await Transaction.findByIdAndDelete(id)
+    res.json({ data: "delete successfully" })
 }
