@@ -1,12 +1,22 @@
-const { getTransactions, createTransaction, getByIdTransactions, deleteTransactionById, getTotalAmount } = require('../controllers/transactionController')
+const {
+  getTransactions,
+  createTransaction,
+  getByIdTransactions,
+  deleteTransactionById,
+  getTotalAmount,
+  getChartExpenseData,
+  TotalReport,
+} = require("../controllers/transactionController");
+const { authentication } = require("../controllers/userController");
 
-const router = require('express').Router()
+const router = require("express").Router();
 
-router.get('/total', getTotalAmount)
-router.get('/:id', getByIdTransactions)
-router.get('/', getTransactions)
-router.post('/', createTransaction)
-router.delete('/:id', deleteTransactionById)
+router.get("/total/report", authentication, TotalReport);
+router.get("/total", authentication, getTotalAmount);
+router.get("/chart/:type", authentication, getChartExpenseData);
+router.get("/:id", authentication, getByIdTransactions);
+router.get("/", authentication, getTransactions);
+router.post("/", authentication, createTransaction);
+router.delete("/:id", authentication, deleteTransactionById);
 
-
-module.exports = router
+module.exports = router;
