@@ -9,7 +9,6 @@ const createToken = (email) => {
 };
 
 exports.signUp = async (req, res, next) => {
-  console.log("signUp");
   const email = req.body.email;
   const password = req.body.password;
   const name = req.body.name;
@@ -19,11 +18,9 @@ exports.signUp = async (req, res, next) => {
   if (isUserExist) {
     return res.status(402).json({ data: "this user already exist" });
   }
-  console.log(isUserExist);
 
   const hashPassword = await bcrypt.hash(password, 10);
 
-  console.log("hashPassword", hashPassword);
   let user;
   try {
     user = await User.create({
@@ -35,8 +32,6 @@ exports.signUp = async (req, res, next) => {
     res.status(400).json({ data: error.message });
   }
 
-  console.log(user);
-
   const token = createToken(email);
 
   res.status(200).json({ token, user });
@@ -46,8 +41,6 @@ exports.signIn = async (req, res, next) => {
   const email = req.body.email;
   const password = req.body.password;
 
-  console.log("emai", email);
-  console.log("password", password);
   if (!email || !password) {
     return res
       .status(402)
@@ -55,8 +48,6 @@ exports.signIn = async (req, res, next) => {
   }
 
   const user = await User.findOne({ email });
-
-  console.log("user is", user);
 
   if (!user) {
     return res.status(402).json({ data: "email is required", status: 402 });
@@ -76,7 +67,6 @@ exports.signIn = async (req, res, next) => {
 
 exports.authentication = async (req, res, next) => {
   let token;
-  console.log("req.headers", req.headers);
   if (
     req.headers.authorization &&
     req.headers.authorization.startsWith("Bearer")

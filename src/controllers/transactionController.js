@@ -8,8 +8,6 @@ exports.createTransaction = async (req, res, next) => {
   const category = req.body?.category;
   const user = req.user;
 
-  console.log(req.body);
-
   if (!money) {
     return res.status(400).json({ message: "money is required" });
   }
@@ -45,6 +43,11 @@ exports.getTransactions = async (req, res, next) => {
   const monthNumber = dummyDate.getMonth() + 1;
 
   const transactions = await Transaction.aggregate([
+    {
+      $sort: {
+        date: -1,
+      },
+    },
     {
       $match: {
         user: new Types.ObjectId(user._id),
@@ -86,7 +89,6 @@ exports.getTransactions = async (req, res, next) => {
       },
     },
   ]);
-  console.log("transactions", transactions);
   res.status(200).json({ data: transactions });
 };
 
@@ -113,6 +115,7 @@ exports.getByIdTransactions = async (req, res, next) => {
 };
 
 exports.getTotalAmount = async (req, res, next) => {
+  console.log("getTotalAmount");
   const user = req.user;
 
   const expense = await Transaction.aggregate([
@@ -143,7 +146,6 @@ exports.getTotalAmount = async (req, res, next) => {
       },
     },
   ]);
-  console.log(expense);
   res.json({
     data: (expense[0]?.totalAmount || 0) + (expense[1]?.totalAmount || 0),
   });

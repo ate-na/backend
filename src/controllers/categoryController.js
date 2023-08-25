@@ -1,7 +1,6 @@
 const Category = require("../models/categoryModel");
 
 exports.createCategory = async (req, res, next) => {
-  console.log(req.body);
   const title = req.body?.title;
   const type = req.body?.type;
   const icon = req.body?.icon;
@@ -21,7 +20,7 @@ exports.createCategory = async (req, res, next) => {
     const category = await Category.create({ title, type, icon });
     return res.json({ data: category, status: 201 });
   } catch (error) {
-    return res.json({ data: "error", status: 500 });
+    // return res.json({ data: "error", status: 500 });
   }
 };
 
