@@ -1,3 +1,4 @@
+const { Types } = require("mongoose");
 const Category = require("../models/categoryModel");
 const Transaction = require("../models/transacionModel");
 
@@ -5,6 +6,7 @@ exports.createTransaction = async (req, res, next) => {
   const money = req.body?.money;
   const date = req.body?.date;
   const category = req.body?.category;
+  const user = req.user;
 
   console.log(req.body);
 
@@ -28,6 +30,7 @@ exports.createTransaction = async (req, res, next) => {
     money: isCategoryExist.type === "Expense" ? money * -1 : money,
     category,
     date,
+    user,
   });
 
   return res.status(200).json({ data: transaction });
@@ -36,10 +39,17 @@ exports.createTransaction = async (req, res, next) => {
 exports.getTransactions = async (req, res, next) => {
   const year = req.query.year;
   const month = req.query.month;
+  const user = req.user;
+
   const dummyDate = new Date(`${month} 1, ${year}`);
   const monthNumber = dummyDate.getMonth() + 1;
 
   const transactions = await Transaction.aggregate([
+    {
+      $match: {
+        user: new Types.ObjectId(user._id),
+      },
+    },
     {
       $project: {
         month: { $month: "$date" },
@@ -82,12 +92,17 @@ exports.getTransactions = async (req, res, next) => {
 
 exports.getByIdTransactions = async (req, res, next) => {
   const id = req.params.id;
+  const user = req.user;
+
   if (!id) {
     return res.status(400).json({ data: "id is required" });
   }
 
   try {
-    const transaction = await Transaction.findById(id);
+    const transaction = await Transaction.findOne({
+      _id: new Types.ObjectId(id),
+      user: user,
+    });
     if (!transaction) {
       return res.status(400).json({ data: "id is not valid" });
     }
@@ -98,7 +113,14 @@ exports.getByIdTransactions = async (req, res, next) => {
 };
 
 exports.getTotalAmount = async (req, res, next) => {
+  const user = req.user;
+
   const expense = await Transaction.aggregate([
+    {
+      $match: {
+        user: new Types.ObjectId(user._id),
+      },
+    },
     {
       $lookup: {
         from: "categories",
@@ -121,17 +143,25 @@ exports.getTotalAmount = async (req, res, next) => {
       },
     },
   ]);
-  res.json({ data: expense[0]?.totalAmount + expense[1]?.totalAmount });
+  console.log(expense);
+  res.json({
+    data: (expense[0]?.totalAmount || 0) + (expense[1]?.totalAmount || 0),
+  });
 };
 
 exports.deleteTransactionById = async (req, res, next) => {
   const id = req.params.id;
-  const trx = await Transaction.findByIdAndDelete(id);
+  const user = req.user;
+  const trx = await Transaction.findOneAndDelete({
+    _id: new Types.ObjectId(id),
+    user: new Types.ObjectId(user._id),
+  });
   res.json({ data: "delete successfully" });
 };
 
 exports.getChartExpenseData = async (req, res, next) => {
   const type = req.params.type;
+  const user = req.user;
   let year;
   let month;
   if (req.query.year) {
@@ -147,10 +177,15 @@ exports.getChartExpenseData = async (req, res, next) => {
   const dummyDate = new Date(`${month} 1, ${year}`);
   const monthNumber = dummyDate.getMonth() + 1;
   if (type !== "Expense" && type !== "Income") {
-    res.status(402).json({ data: "type is not correct" });
+    return res.status(402).json({ data: "type is not correct" });
   }
 
   const totalAmountResult = await Transaction.aggregate([
+    {
+      $match: {
+        user: new Types.ObjectId(user._id),
+      },
+    },
     {
       $project: {
         month: { $month: "$date" },
@@ -196,6 +231,11 @@ exports.getChartExpenseData = async (req, res, next) => {
   ]);
   const totalAmount = totalAmountResult[0]?.totalAmount || 0;
   const x = await Transaction.aggregate([
+    {
+      $match: {
+        user: new Types.ObjectId(user._id),
+      },
+    },
     {
       $project: {
         month: { $month: "$date" },
@@ -261,9 +301,15 @@ exports.getChartExpenseData = async (req, res, next) => {
 exports.TotalReport = async (req, res, next) => {
   const year = req.query.year;
   const month = req.query.month;
+  const user = req.user;
   const dummyDate = new Date(`${month} 1, ${year}`);
   const monthNumber = dummyDate.getMonth() + 1;
   const total = await Transaction.aggregate([
+    {
+      $match: {
+        user: new Types.ObjectId(user._id),
+      },
+    },
     {
       $project: {
         month: { $month: "$date" },

@@ -2,8 +2,8 @@ const User = require("../models/userModel");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 
-const createToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECERT, {
+const createToken = (email) => {
+  return jwt.sign({ email }, process.env.JWT_SECERT, {
     expiresIn: process.env.JWT_EXPIRES_IN,
   });
 };
@@ -17,7 +17,7 @@ exports.signUp = async (req, res, next) => {
   const isUserExist = await User.findOne({ email });
 
   if (isUserExist) {
-    res.status(402).json({ data: "this user already exist" });
+    return res.status(402).json({ data: "this user already exist" });
   }
   console.log(isUserExist);
 
@@ -49,7 +49,7 @@ exports.signIn = async (req, res, next) => {
   console.log("emai", email);
   console.log("password", password);
   if (!email || !password) {
-    res
+    return res
       .status(402)
       .json({ data: "email or password is required", status: 402 });
   }
@@ -59,12 +59,14 @@ exports.signIn = async (req, res, next) => {
   console.log("user is", user);
 
   if (!user) {
-    res.status(402).json({ data: "email is required", status: 402 });
+    return res.status(402).json({ data: "email is required", status: 402 });
   }
 
   const correctPassword = await bcrypt.compare(password, user.password);
   if (!correctPassword) {
-    res.status(402).json({ data: "password is required", status: 402 });
+    return res
+      .status(402)
+      .json({ data: "user or  password is not correct", status: 402 });
   }
 
   const token = createToken(user.email);
@@ -74,7 +76,7 @@ exports.signIn = async (req, res, next) => {
 
 exports.authentication = async (req, res, next) => {
   let token;
-  console.log("req.header", req.headers);
+  console.log("req.headers", req.headers);
   if (
     req.headers.authorization &&
     req.headers.authorization.startsWith("Bearer")
@@ -82,17 +84,49 @@ exports.authentication = async (req, res, next) => {
     token = req.headers.authorization.split(" ")[1];
   }
   if (!token) {
-    res.status(401).json({
+    return res.status(401).json({
       data: "You are not logged in! Please log in to get access.",
       status: 402,
     });
   }
 
-  const decoded = jwt.decode(token, process.env.JWT_SECERT);
+  let decode;
+  try {
+    decode = jwt.verify(token, process.env.JWT_SECERT, {});
+  } catch (error) {
+    console.log(error);
+  }
 
-  console.log("decode", decoded);
+  if (!decode || !decode.email) {
+    return res.status(401).json({
+      data: "token is not valid",
+      status: 401,
+    });
+  }
+
+  const user = await User.findOne({ email: decode.email });
+
+  if (!user) {
+    return res.status(401).json({
+      data: "token is not valid",
+      status: 401,
+    });
+  }
+
+  req.user = user;
 
   next();
 };
 
-exports.changePassword = async (req, res, next) => {};
+exports.changePassword = async (req, res, next) => {
+  const user = req.user;
+  const password = req.body.password;
+
+  const hashPassword = await bcrypt.hash(password, 10);
+
+  const data = await User.findByIdAndUpdate(user._id, {
+    password: hashPassword,
+  });
+
+  return res.status(200).json({ data, status: 200 });
+};
