@@ -35,6 +35,8 @@ exports.createTransaction = async (req, res, next) => {
 };
 
 exports.getTransactions = async (req, res, next) => {
+  console.log("year", new Date().getFullYear());
+  console.log("month", new Date().getMonth());
   const year = req.query.year;
   const month = req.query.month;
   const user = req.user;
