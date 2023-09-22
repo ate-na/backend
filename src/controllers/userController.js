@@ -34,7 +34,7 @@ exports.signUp = async (req, res, next) => {
 
   const token = createToken(email);
 
-  res.status(200).json({ token, user });
+  res.status(200).json({ data: { token, user }, status: 200 });
 };
 
 exports.signIn = async (req, res, next) => {
